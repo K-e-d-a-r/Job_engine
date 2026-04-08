@@ -9,11 +9,24 @@
 
 <div class="container mt-5">
 
-    <h1 class="text-center mb-4"> AI Job Recommendation System</h1>
+    <h1 class="text-center mb-4">🚀 AI Job Recommendation System</h1>
 
     <div class="card p-4 shadow">
+
         <input type="file" id="cvFile" class="form-control mb-3">
-        <button class="btn btn-primary w-100" onclick="uploadCV()">Find Jobs</button>
+
+        <input type="text" id="title" class="form-control mb-2" placeholder="Job title (e.g. data)">
+        <input type="text" id="location" class="form-control mb-2" placeholder="Location (e.g. Berlin)">
+        
+        <select id="jobType" class="form-control mb-3">
+            <option value="">All Types</option>
+            <option value="remote">Remote</option>
+            <option value="full-time">Full Time</option>
+            <option value="part-time">Part Time</option>
+        </select>
+
+        <button id="btn" class="btn btn-primary w-100" onclick="uploadCV()">Find Jobs</button>
+
     </div>
 
     <div id="results" class="mt-5"></div>
@@ -22,28 +35,32 @@
 
 <script>
 async function uploadCV() {
-    const fileInput = document.getElementById("cvFile");
-    const file = fileInput.files[0];
-    const button = document.querySelector("button");
+
+    const file = document.getElementById("cvFile").files[0];
+    const button = document.getElementById("btn");
 
     if (!file) {
-        alert("Please upload a CV");
+        alert("Upload CV first!");
         return;
     }
 
-    //  Show loader
-    button.innerHTML = " Processing...";
+    // 🔥 Loader start
+    button.innerHTML = "⏳ Processing...";
     button.disabled = true;
 
     document.getElementById("results").innerHTML = `
         <div class="text-center mt-4">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2">Analyzing your CV and fetching jobs...</p>
+            <div class="spinner-border text-primary"></div>
+            <p>Analyzing CV and fetching jobs...</p>
         </div>
     `;
 
     let formData = new FormData();
+
     formData.append("file", file);
+    formData.append("title", document.getElementById("title").value);
+    formData.append("location", document.getElementById("location").value);
+    formData.append("job_type", document.getElementById("jobType").value);
 
     try {
         const response = await fetch("http://127.0.0.1:8000/recommend", {
@@ -74,16 +91,22 @@ async function uploadCV() {
 
     } catch (error) {
         document.getElementById("results").innerHTML = `
-            <div class="alert alert-danger">
-                Error fetching results. Check backend.
-            </div>
+            <div class="alert alert-danger">Error connecting to backend</div>
         `;
     }
 
-    //  Hide loader
+    // 🔥 Loader stop
     button.innerHTML = "Find Jobs";
     button.disabled = false;
 }
+// if (data.results.length === 0) {
+//     document.getElementById("results").innerHTML = `
+//         <div class="alert alert-warning">
+//             No jobs found for given filters 
+//         </div>
+//     `;
+//     return;
+// }
 </script>
 
 </body>

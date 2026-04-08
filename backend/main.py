@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile
+from fastapi import FastAPI, UploadFile, Form
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 import shutil
@@ -10,7 +10,7 @@ from backend.recommender import recommend_jobs
 
 app = FastAPI()
 
-#  CORS (IMPORTANT for frontend)
+# CORS (important for frontend)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,24 +19,63 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-#  Home route
+# Home route
 @app.get("/", response_class=HTMLResponse)
 def home():
-    return """
-    <h1> AI Job Recommendation API</h1>
-    <p>Use the frontend UI or go to <a href="/docs">/docs</a></p>
-    """
+    return "<h2> AI Job Recommendation API Running</h2>"
 
+# Main endpoint with filters
 @app.post("/recommend")
-async def recommend(file: UploadFile):
+async def recommend(
+    file: UploadFile,
+    title: str = Form(None),
+    location: str = Form(None),
+    job_type: str = Form(None)
+):
 
+    # Save CV
     with open("cv.pdf", "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
+    # Extract text
     text = extract_cv_text("cv.pdf")
     clean = clean_text(text)
 
+    # Fetch jobs
     jobs = fetch_jobs()
-    results = recommend_jobs(clean, jobs)
+
+    #  APPLY FILTERS
+    filtered_jobs = []
+
+    for job in jobs:
+        desc = job["description"].lower()
+        title_text = job["title"].lower()
+
+        combined = title_text + " " + desc
+
+        if title and title.lower() not in title_text:
+            continue
+
+        if location:
+            if location.lower() not in combined:
+                continue
+
+        if job_type:
+            jt = job_type.lower()
+            if jt == "part time" and "part" not in combined:
+                continue
+            elif jt == "full time" and "full" not in combined:
+                continue
+            elif jt == "remote" and "remote" not in combined:
+                continue
+
+        filtered_jobs.append(job)
+
+    # fallback if nothing matched
+    if len(filtered_jobs) == 0:
+        return {"results": []}
+
+    # Recommend
+    results = recommend_jobs(clean, filtered_jobs)
 
     return {"results": results}
