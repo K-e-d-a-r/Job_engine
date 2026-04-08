@@ -7,10 +7,11 @@ from utils.parser import extract_cv_text
 from utils.preprocessing import clean_text
 from backend.job_api import fetch_jobs
 from backend.recommender import recommend_jobs
+from backend.llm import explain_job   
 
 app = FastAPI()
 
-# CORS (important for frontend)
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,12 +20,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Home route
 @app.get("/", response_class=HTMLResponse)
 def home():
     return "<h2> AI Job Recommendation API Running</h2>"
 
-# Main endpoint with filters
 @app.post("/recommend")
 async def recommend(
     file: UploadFile,
@@ -44,7 +43,7 @@ async def recommend(
     # Fetch jobs
     jobs = fetch_jobs()
 
-    #  APPLY FILTERS
+    # FILTER LOGIC (IMPROVED)
     filtered_jobs = []
 
     for job in jobs:
@@ -56,12 +55,12 @@ async def recommend(
         if title and title.lower() not in title_text:
             continue
 
-        if location:
-            if location.lower() not in combined:
-                continue
+        if location and location.lower() not in combined:
+            continue
 
         if job_type:
             jt = job_type.lower()
+
             if jt == "part time" and "part" not in combined:
                 continue
             elif jt == "full time" and "full" not in combined:
@@ -71,11 +70,18 @@ async def recommend(
 
         filtered_jobs.append(job)
 
-    # fallback if nothing matched
+    #  NO FALLBACK (IMPORTANT)
     if len(filtered_jobs) == 0:
         return {"results": []}
 
     # Recommend
     results = recommend_jobs(clean, filtered_jobs)
+
+    # ADD LLM (ONLY TOP 3)
+    for job in results[:3]:
+        try:
+            job["explanation"] = explain_job(clean, job["description"])
+        except:
+            job["explanation"] = "LLM explanation failed"
 
     return {"results": results}

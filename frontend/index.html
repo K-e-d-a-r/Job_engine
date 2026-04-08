@@ -44,8 +44,8 @@ async function uploadCV() {
         return;
     }
 
-    // 🔥 Loader start
-    button.innerHTML = "⏳ Processing...";
+    // Loader start
+    button.innerHTML = " Processing...";
     button.disabled = true;
 
     document.getElementById("results").innerHTML = `
@@ -70,18 +70,40 @@ async function uploadCV() {
 
         const data = await response.json();
 
+        if (data.results.length === 0) {
+            document.getElementById("results").innerHTML = `
+                <div class="alert alert-warning">
+                    No jobs found for given filters 
+                </div>
+            `;
+            button.innerHTML = "Find Jobs";
+            button.disabled = false;
+            return;
+        }
+
         let html = "";
 
         data.results.forEach(job => {
             html += `
             <div class="card mb-3 shadow">
                 <div class="card-body">
+
                     <h5>${job.title}</h5>
+
                     <p><strong>Match Score:</strong> ${job.score}</p>
+
+                    ${job.explanation ? `
+                    <div class="alert alert-info mt-2">
+                        <strong> AI Explanation:</strong><br>
+                        ${job.explanation}
+                    </div>
+                    ` : ""}
+
                     <details>
                         <summary>View Description</summary>
                         <p>${job.description}</p>
                     </details>
+
                 </div>
             </div>
             `;
@@ -95,18 +117,10 @@ async function uploadCV() {
         `;
     }
 
-    // 🔥 Loader stop
+    // Loader stop
     button.innerHTML = "Find Jobs";
     button.disabled = false;
 }
-// if (data.results.length === 0) {
-//     document.getElementById("results").innerHTML = `
-//         <div class="alert alert-warning">
-//             No jobs found for given filters 
-//         </div>
-//     `;
-//     return;
-// }
 </script>
 
 </body>
